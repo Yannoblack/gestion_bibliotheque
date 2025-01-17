@@ -5,6 +5,23 @@ import java.util.List;
 
 public class EmpruntDAO {
 
+    public void inverserDatesRetour() {
+        String sql = "UPDATE Emprunt SET dateRetourPrevue = dateRetourEffective, dateRetourEffective = dateRetourPrevue";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("Les dates de retour prévue et effective ont été échangées avec succès.");
+            } else {
+                System.out.println("Aucun emprunt trouvé à mettre à jour.");
+            }
+        } catch (SQLException e) {
+            System.err.println("Erreur lors de la mise à jour des dates : " + e.getMessage());
+        }
+    }
+
     // Enregistrer un emprunt
     public void enregistrerEmprunt(Emprunt emprunt) {
         if (emprunt.getDateEmprunt() == null || emprunt.getDateRetourPrevue() == null) {
@@ -22,7 +39,7 @@ public class EmpruntDAO {
             stmt.executeUpdate();
             System.out.println("Emprunt enregistré avec succès !");
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Erreur lors de l'enregistrement de l'emprunt : " + e.getMessage());
         }
     }
 
@@ -45,7 +62,7 @@ public class EmpruntDAO {
                 System.out.println("Aucun emprunt trouvé avec l'ID : " + idEmprunt);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Erreur lors de la gestion du retour : " + e.getMessage());
         }
     }
 
@@ -54,26 +71,34 @@ public class EmpruntDAO {
         String sql = "SELECT dateRetourPrevue, dateRetourEffective FROM Emprunt WHERE id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setInt(1, idEmprunt);
             ResultSet rs = stmt.executeQuery();
+
             if (rs.next()) {
                 LocalDate dateRetourPrevue = rs.getDate("dateRetourPrevue").toLocalDate();
                 LocalDate dateRetourEffective = rs.getDate("dateRetourEffective") != null
                         ? rs.getDate("dateRetourEffective").toLocalDate()
                         : null;
 
-                if (dateRetourEffective != null) {
-                    long joursDeRetard = java.time.temporal.ChronoUnit.DAYS.between(dateRetourPrevue, dateRetourEffective);
-                    return joursDeRetard > 0 ? joursDeRetard * 100 : 0;
-                } else {
-                    System.out.println("Erreur : La date de retour effective est encore manquante.");
+                if (dateRetourPrevue == null || dateRetourEffective == null) {
+                    System.out.println("Erreur : Date de retour prévue ou effective manquante pour l'emprunt ID " + idEmprunt);
                     return 0;
                 }
+
+                // Utilisation de la méthode calculerPenalite d'Emprunt
+                Emprunt emprunt = new Emprunt(idEmprunt, rs.getInt("membreId"), rs.getInt("livreId"),
+                        dateRetourPrevue, dateRetourEffective);
+                return emprunt.calculerPenalite(); // Appel de la méthode de calcul de pénalité
+            } else {
+                System.out.println("Erreur : Aucun emprunt trouvé avec l'ID : " + idEmprunt);
             }
+
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Erreur lors de l'accès à la base de données : " + e.getMessage());
         }
-        return 0;
+
+        return 0; // Valeur par défaut en cas d'erreur
     }
 
     // Lister tous les emprunts
@@ -98,7 +123,7 @@ public class EmpruntDAO {
                 emprunts.add(emprunt);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Erreur lors de la récupération des emprunts : " + e.getMessage());
         }
         return emprunts;
     }
@@ -111,12 +136,7 @@ public class EmpruntDAO {
         } else {
             System.out.println("Liste des emprunts :");
             for (Emprunt emprunt : emprunts) {
-                System.out.println("ID Emprunt : " + emprunt.getIdEmprunt() +
-                        ", ID Membre : " + emprunt.getMembreId() +
-                        ", ID Livre : " + emprunt.getLivreId() +
-                        ", Date d'emprunt : " + emprunt.getDateEmprunt() +
-                        ", Date de retour prévue : " + emprunt.getDateRetourPrevue() +
-                        ", Date de retour effective : " + (emprunt.getDateRetourEffective() != null ? emprunt.getDateRetourEffective() : "Non retourné"));
+                emprunt.afficherDetails(); // Utiliser la méthode d'affichage d'Emprunt
             }
         }
     }

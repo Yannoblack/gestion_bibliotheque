@@ -10,7 +10,6 @@ public class App {
         LivreDAO livreDAO = new LivreDAO();
         MembreDAO membreDAO = new MembreDAO();
         EmpruntDAO empruntDAO = new EmpruntDAO();
-        GestionMembres gestionMembres = new GestionMembres();
 
         // Menu de l'application
         while (true) {
@@ -23,7 +22,8 @@ public class App {
             System.out.println("6. Lister tous les livres");
             System.out.println("7. Lister tous les membres");
             System.out.println("8. Afficher la liste des emprunts");
-            System.out.println("9. Quitter");
+            System.out.println("9. Calculer les pénalités");
+            System.out.println("10. Quitter");
 
             System.out.print("Choisissez une option : ");
             int choix = scanner.nextInt();
@@ -112,6 +112,14 @@ public class App {
                     break;
 
                 case 9:
+                    // Calculer les pénalités
+                    System.out.print("ID de l'emprunt : ");
+                    int idEmprunt = scanner.nextInt();
+                    double penalite = empruntDAO.calculerPenalite(idEmprunt);
+                    System.out.println("Pénalité pour l'emprunt ID " + idEmprunt + " : " + penalite + " CFA");
+                    break;
+
+                case 10:
                     // Quitter l'application
                     System.out.println("Au revoir !");
                     scanner.close();
